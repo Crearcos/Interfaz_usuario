@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1034172263393",
+    "project_id": "interfaz-usuario-39b98",
+    "storage_bucket": "interfaz-usuario-39b98.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1034172263393:android:cf64774be0be8bd29280a0",
+        "android_client_info": {
+          "package_name": "com.example.interfaz_usuario"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD6BYKgiscIpNyIx4Le6wN361Nr-bCu1_Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

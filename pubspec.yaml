@@ -1,0 +1,39 @@
+name: interfaz_usuario
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  firebase_core: ^4.1.0
+  firebase_auth: ^6.0.2
+  cloud_firestore: ^6.0.1
+  google_sign_in: ^7.1.1
+  flutter_facebook_auth: ^7.1.2
+  intl_phone_field: ^3.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_native_splash: ^2.4.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/yumi_logo.png
+    - assets/images/google_logo.png
+
+flutter_native_splash:
+  color: "#00A516"
+  image: assets/images/yumi_logo.png
+  android_12:
+    color: "#00A516"
+    image: assets/images/yumi_logo.png
+    icon_background_color: "#00A516"
