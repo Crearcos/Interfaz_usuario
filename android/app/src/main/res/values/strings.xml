@@ -1,9 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Nombre visible de la app -->
     <string name="app_name">interfaz_usuario</string>
 
     <!-- Facebook -->
     <string name="facebook_app_id">2292793827804696</string>
     <string name="facebook_client_token">d364807915c55db476cf1cd31d867a9e</string>
     <string name="fb_login_protocol_scheme">fb2292793827804696</string>
+
+    <!-- (Opcional) API Key de Google Maps si vas a usar mapas -->
+    <!-- Reemplaza TU_API_KEY si activas la meta-data en el Manifest -->
+    <string name="google_maps_key">TU_API_KEY</string>
 </resources>

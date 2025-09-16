@@ -1,125 +1,120 @@
+// lib/pages/otp_code_page.dart
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '../features/home/home_page.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../features/auth/phone_auth_controller.dart';
 
 class OtpCodePage extends StatefulWidget {
-  final String verificationId;
-  final String phoneLabel;
-  const OtpCodePage({super.key, required this.verificationId, required this.phoneLabel});
+  const OtpCodePage({super.key});
 
   @override
   State<OtpCodePage> createState() => _OtpCodePageState();
 }
 
 class _OtpCodePageState extends State<OtpCodePage> {
-  final _nodes = List.generate(6, (_) => FocusNode());
-  final _ctrs  = List.generate(6, (_) => TextEditingController());
-  bool _verifying = false;
+  final _otpCtrl = TextEditingController();
+  bool _submitting = false;
 
   @override
   void dispose() {
-    for (final n in _nodes) n.dispose();
-    for (final c in _ctrs) c.dispose();
+    _otpCtrl.dispose();
     super.dispose();
   }
 
-  String get _code => _ctrs.map((c) => c.text).join();
-
-  Future<void> _verify() async {
-    if (_code.length != 6) return;
-    setState(() => _verifying = true);
-    try {
-      final credential = PhoneAuthProvider.credential(
-        verificationId: widget.verificationId,
-        smsCode: _code,
-      );
-      await FirebaseAuth.instance.signInWithCredential(credential);
-      if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const HomePage()),
-            (_) => false,
-      );
-    } on FirebaseAuthException catch (e) {
+  Future<void> _confirm() async {
+    final code = _otpCtrl.text.trim();
+    if (code.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Código inválido')),
+        const SnackBar(content: Text('Ingresa el código de 6 dígitos')),
       );
-      for (final c in _ctrs) c.clear();
-      _nodes.first.requestFocus();
-    } finally {
-      if (mounted) setState(() => _verifying = false);
+      return;
     }
-  }
 
-  Widget _circleBox(int i) {
-    return SizedBox(
-      width: 56, height: 56,
-      child: TextField(
-        controller: _ctrs[i],
-        focusNode: _nodes[i],
-        keyboardType: TextInputType.number,
-        textAlign: TextAlign.center,
-        maxLength: 1,
-        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-        decoration: InputDecoration(
-          counterText: '',
-          contentPadding: EdgeInsets.zero,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(100),
-            borderSide: const BorderSide(color: Colors.black87, width: 1.6),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(100),
-            borderSide: const BorderSide(color: Colors.black87, width: 2),
-          ),
-        ),
-        onChanged: (v) {
-          if (v.isNotEmpty && i < _nodes.length - 1) {
-            _nodes[i + 1].requestFocus();
-          } else if (v.isEmpty && i > 0) {
-            _nodes[i - 1].requestFocus();
-          }
-          if (_code.length == 6) _verify();
-        },
-      ),
-    );
+    final vm = context.read<PhoneAuthController>();
+    setState(() => _submitting = true);
+
+    try {
+      await vm.confirmCode(code);
+      if (!mounted) return;
+      // Éxito: entra a la app
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
+    } catch (_) {
+      if (!mounted) return;
+      // Muestra mensaje amistoso del controller (o genérico)
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(vm.error ?? 'Código inválido o expirado')),
+      );
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final vm = context.watch<PhoneAuthController>();
+
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        elevation: 0, backgroundColor: Colors.white, foregroundColor: Colors.black,
-        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded), onPressed: () => Navigator.pop(context)),
+        title: const Text('Código de verificación'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: _submitting ? null : () => Navigator.pop(context),
+        ),
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
-              const Text('Ingresa el código que se envió', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 6),
-              Text('A tu número celular ${widget.phoneLabel}',
-                  style: const TextStyle(fontSize: 16, color: Colors.black54)),
-              const SizedBox(height: 28),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Card(
+            margin: const EdgeInsets.all(24),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  _circleBox(0), const SizedBox(width: 14),
-                  _circleBox(1), const SizedBox(width: 14),
-                  _circleBox(2), const SizedBox(width: 14),
-                  _circleBox(3), const SizedBox(width: 14),
-                  _circleBox(4), const SizedBox(width: 14),
-                  _circleBox(5),
+                  const Text(
+                    'Ingresa el código SMS',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _otpCtrl,
+                    autofocus: true,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: const InputDecoration(
+                      hintText: '••••••',
+                      counterText: '',
+                      prefixIcon: Icon(Icons.verified),
+                    ),
+                    onSubmitted: (_) => _confirm(),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: (_submitting || vm.isLoading) ? null : _confirm,
+                      child: (_submitting || vm.isLoading)
+                          ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                          : const Text('Confirmar'),
+                    ),
+                  ),
+                  if (vm.error != null) ...[
+                    const SizedBox(height: 8),
+                    Text(vm.error!, style: const TextStyle(color: Colors.red)),
+                  ],
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: _submitting ? null : () => Navigator.pop(context),
+                    child: const Text('¿Ingresaste mal el número? Cambiar'),
+                  ),
                 ],
               ),
-              if (_verifying) const Padding(
-                padding: EdgeInsets.only(top: 24),
-                child: CircularProgressIndicator(),
-              ),
-            ],
+            ),
           ),
         ),
       ),

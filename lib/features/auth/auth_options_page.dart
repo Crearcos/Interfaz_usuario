@@ -1,16 +1,15 @@
+// lib/features/auth/auth_options_page.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-import '../../pages/login_email_page.dart';
-import '../../pages/login_phone_page.dart';
-import '../../pages/other_methods_page.dart';
-import '../home/home_page.dart';
-
 const _yumiGreen = Color(0xFF00A516);
-const _fbBlue = Color(0xFF1877F2);
-const _webClientId = 'TU_WEB_CLIENT_ID.apps.googleusercontent.com';
+
+// Para Android normalmente NO necesitas clientId.
+// Si más adelante soportas iOS/Web con el plugin nativo, ponlo aquí.
+const _webClientId = ''; // 'TU_WEB_CLIENT_ID.apps.googleusercontent.com';
 
 class AuthChoicePage extends StatefulWidget {
   const AuthChoicePage({super.key});
@@ -21,70 +20,84 @@ class AuthChoicePage extends StatefulWidget {
 class _AuthChoicePageState extends State<AuthChoicePage> {
   bool _loading = false;
 
-  void _err(String m) {
+  void _toast(String m) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(m), behavior: SnackBarBehavior.floating),
     );
   }
 
-  Future<void> _signInWithFacebook() async {
-    setState(() => _loading = true);
-    try {
-      final r = await FacebookAuth.instance.login(
-        permissions: ['email', 'public_profile'],
-        loginBehavior: LoginBehavior.nativeOnly,
-      );
-      if (r.status != LoginStatus.success || r.accessToken == null) {
-        throw Exception('Necesitas la app de Facebook instalada y abierta.');
-      }
-      final cred =
-      FacebookAuthProvider.credential(r.accessToken!.tokenString);
-      await FirebaseAuth.instance.signInWithCredential(cred);
-      if (!mounted) return;
-      _goHome();
-    } catch (e) {
-      _err(e.toString());
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+  void _goHome() {
+    Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
   }
 
-  Future<void> _google() async {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) Future.microtask(_goHome);
+  }
+
+  // ----------------- FACEBOOK -----------------
+  Future<void> _facebook() async {
     setState(() => _loading = true);
     try {
-      await GoogleSignIn.instance.initialize(serverClientId: _webClientId);
-      final account = await GoogleSignIn.instance.authenticate();
-      if (account == null) throw Exception('Inicio con Google cancelado.');
-
-      final auth = await account.authentication; // solo idToken disponible
-      final cred = GoogleAuthProvider.credential(
-        idToken: auth.idToken,
-      );
-
-      await FirebaseAuth.instance.signInWithCredential(cred);
+      if (kIsWeb) {
+        // Solo úsalo si ya configuraste Facebook para Web en Firebase y Facebook Developers
+        await FirebaseAuth.instance.signInWithPopup(FacebookAuthProvider());
+      } else {
+        final result = await FacebookAuth.instance.login(
+          permissions: const ['email', 'public_profile'],
+          loginBehavior: LoginBehavior.nativeOnly, // en emulador podrías usar webOnly
+        );
+        if (result.status != LoginStatus.success || result.accessToken == null) {
+          throw Exception('Inicio con Facebook cancelado o no disponible.');
+        }
+        final cred = FacebookAuthProvider.credential(result.accessToken!.tokenString);
+        await FirebaseAuth.instance.signInWithCredential(cred);
+      }
       if (!mounted) return;
       _goHome();
     } on FirebaseAuthException catch (e) {
-      _err(e.message ?? 'Error de autenticación.');
+      _toast(e.message ?? 'Error de autenticación con Facebook.');
     } catch (e) {
-      _err(e.toString());
+      _toast(e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-
-
-  void _goHome() {
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const HomePage()),
-          (_) => false,
-    );
+  // ----------------- GOOGLE -----------------
+  Future<void> _google() async {
+    setState(() => _loading = true);
+    try {
+      if (kIsWeb) {
+        // WEB: usa el proveedor web directo de Firebase (no el plugin nativo)
+        await FirebaseAuth.instance.signInWithPopup(GoogleAuthProvider());
+      } else {
+        // ANDROID: flujo con plugin nativo
+        await GoogleSignIn.instance.initialize(
+          serverClientId: _webClientId.isEmpty ? null : _webClientId,
+        );
+        final account = await GoogleSignIn.instance.authenticate();
+        final tokens = await account.authentication; // v7: solo idToken
+        final credential = GoogleAuthProvider.credential(idToken: tokens.idToken);
+        await FirebaseAuth.instance.signInWithCredential(credential);
+      }
+      if (!mounted) return;
+      _goHome();
+    } on FirebaseAuthException catch (e) {
+      _toast(e.message ?? 'Error de autenticación con Google.');
+    } catch (e) {
+      _toast(e.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -93,42 +106,25 @@ class _AuthChoicePageState extends State<AuthChoicePage> {
           child: Column(
             children: [
               SizedBox(height: h * 0.25),
-              _FbButton(disabled: _loading, onTap: _signInWithFacebook),
+
+              // Si no configuraste Facebook para Web, puedes desactivar el botón en Web:
+              _FbButton(disabled: _loading /* || kIsWeb */, onTap: _facebook),
               const SizedBox(height: 16),
+
               _GoogleButton(disabled: _loading, onTap: _google),
               const SizedBox(height: 16),
-              _GreenButton(
-                text: 'Otro método de ingreso',
-                onTap: _loading
-                    ? null
-                    : () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const OtherMethodsPage()),
-                ),
-              ),
-              const SizedBox(height: 16),
+
               _GreenButton(
                 text: 'Número celular',
-                onTap: _loading
-                    ? null
-                    : () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const LoginPhonePage()),
-                ),
+                onTap: _loading ? null : () => Navigator.pushNamed(context, '/phone'),
               ),
               const SizedBox(height: 16),
+
               _GreenButton(
                 text: 'Correo electrónico',
-                onTap: _loading
-                    ? null
-                    : () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const LoginEmailPage()),
-                ),
+                onTap: _loading ? null : () => Navigator.pushNamed(context, '/login-email'),
               ),
+
               const SizedBox(height: 16),
               if (_loading)
                 const Padding(
@@ -151,19 +147,16 @@ class _FbButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 56,
-      width: double.infinity,
+      height: 56, width: double.infinity,
       child: ElevatedButton.icon(
         onPressed: disabled ? null : onTap,
         icon: const Icon(Icons.facebook, size: 22),
-        label: const Text('Continue with Facebook'),
+        label: const Text('Continuar con Facebook'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: _fbBlue,
+          backgroundColor: const Color(0xFF1877F2),
           foregroundColor: Colors.white,
-          shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          textStyle:
-          const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
         ),
       ),
     );
@@ -185,21 +178,15 @@ class _GoogleButton extends StatelessWidget {
         onTap: disabled ? null : onTap,
         borderRadius: BorderRadius.circular(18),
         child: Container(
-          height: 56,
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 18),
+          height: 56, width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 18),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset('assets/images/google_logo.png',
-                  width: 22, height: 22),
-              const SizedBox(width: 12),
-              const Text(
-                'Continue with Google',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black87),
+            children: const [
+              Icon(Icons.g_mobiledata, size: 28),
+              SizedBox(width: 8),
+              Text(
+                'Continuar con Google',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.black87),
               ),
             ],
           ),
@@ -217,17 +204,13 @@ class _GreenButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 56,
-      width: double.infinity,
+      height: 56, width: double.infinity,
       child: ElevatedButton(
         onPressed: onTap,
         style: ElevatedButton.styleFrom(
-          backgroundColor: _yumiGreen,
-          foregroundColor: Colors.white,
-          shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          textStyle:
-          const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          backgroundColor: _yumiGreen, foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
         ),
         child: Text(text),
       ),
