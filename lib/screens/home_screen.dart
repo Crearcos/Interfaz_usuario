@@ -1,5 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'category_screen.dart';
+import '../widgets/add_to_cart_sheet.dart'; // ajusta la ruta si tu Home no está en /screens
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,40 +30,63 @@ class _HomeScreenState extends State<HomeScreen> {
     'assets/b3.png',
   ];
 
-  // Categorías (siguen en red, pero se pueden pasar a assets)
+  // Categorías (en red o assets) — usa los mismos nombres que mostrará la CategoryScreen
   final List<Map<String, String>> categories = [
-    {'name': 'Ensalada', 'img': 'https://images.unsplash.com/photo-1540420773420-3366772f4999?q=80&w=300'},
-    {'name': 'Desayuno', 'img': 'https://images.unsplash.com/photo-1551218808-94e220e084d2?q=80&w=300'},
-    {'name': 'Almuerzo', 'img': 'https://images.unsplash.com/photo-1529042410759-befb1204b468?q=80&w=300'},
-    {'name': 'Snacks', 'img': 'https://images.unsplash.com/photo-1517673400267-0251440c45dc?q=80&w=300'},
+    {'name': 'Ensaladas', 'img': 'https://images.unsplash.com/photo-1540420773420-3366772f4999?q=80&w=300'},
+    {'name': 'Desayuno',  'img': 'https://images.unsplash.com/photo-1551218808-94e220e084d2?q=80&w=300'},
+    {'name': 'Almuerzo',  'img': 'https://images.unsplash.com/photo-1529042410759-befb1204b468?q=80&w=300'},
+    {'name': 'Snacks',    'img': 'https://images.unsplash.com/photo-1517673400267-0251440c45dc?q=80&w=300'},
   ];
 
-  // Platos (mock)
+  // Platos (mock) con campo 'category' para poder filtrar en CategoryScreen
   final List<Map<String, dynamic>> dishes = [
     {
       'name': 'Ensalada de Quinoa',
       'price': 8.90,
       'img': 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?q=80&w=800',
+      'category': 'Ensaladas',
     },
     {
-      'name': 'Green Smoothie',
-      'price': 4.99,
-      'img': 'https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?q=80&w=800',
+      'name': 'Ensalada de garbanzo',
+      'price': 4.50,
+      'img': 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=800',
+      'category': 'Ensaladas',
+    },
+    {
+      'name': 'Ensalada de fréjol',
+      'price': 5.00,
+      'img': 'https://images.unsplash.com/photo-1540420773420-3366772f4999?q=80&w=800',
+      'category': 'Ensaladas',
+    },
+    {
+      'name': 'Ensalada de pollo',
+      'price': 4.90,
+      'img': 'https://images.unsplash.com/photo-1529042410759-befb1204b468?q=80&w=800',
+      'category': 'Ensaladas',
     },
     {
       'name': 'Galletas de avena',
       'price': 3.00,
       'img': 'https://images.unsplash.com/photo-1509365465985-25d11c17e812?q=80&w=800',
+      'category': 'Snacks',
     },
     {
       'name': 'Crema de tomate',
       'price': 3.99,
       'img': 'https://images.unsplash.com/photo-1543352634-8732c996d6d1?q=80&w=800',
+      'category': 'Almuerzo',
     },
     {
       'name': 'Bowl de frutas',
       'price': 5.50,
       'img': 'https://images.unsplash.com/photo-1490474418585-1fdc8f6f5a3b?q=80&w=800',
+      'category': 'Desayuno',
+    },
+    {
+      'name': 'Green Smoothie',
+      'price': 4.99,
+      'img': 'https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?q=80&w=800',
+      'category': 'Desayuno',
     },
   ];
 
@@ -230,36 +255,50 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 14),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: categories.map((c) => _categoryItem(c)).toList(),
+        children: categories.map((c) => _categoryItem(context, c)).toList(),
       ),
     );
   }
 
-  Widget _categoryItem(Map<String, String> c) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 64,
-          height: 64,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: Colors.grey.shade300),
-            image: DecorationImage(
-              image: NetworkImage(c['img']!),
-              fit: BoxFit.cover,
+  Widget _categoryItem(BuildContext context, Map<String, String> c) {
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CategoryScreen(
+              categoryName: c['name']!,
+              allDishes: dishes,
             ),
           ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          c['name']!,
-          style: const TextStyle(
-            fontWeight: FontWeight.w700,
-            color: textMain,
+        );
+      },
+      borderRadius: BorderRadius.circular(36),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(color: Colors.grey.shade300),
+              image: DecorationImage(
+                image: NetworkImage(c['img']!),
+                fit: BoxFit.cover,
+              ),
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 6),
+          Text(
+            c['name']!,
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              color: textMain,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -290,7 +329,11 @@ class _HomeScreenState extends State<HomeScreen> {
               d['name'],
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: textMain),
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 14,
+                color: textMain,
+              ),
             ),
           ),
           Padding(
@@ -305,7 +348,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () => showAddToCartSheet(context, d, allDishes: dishes),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: green,
                   foregroundColor: Colors.white,
