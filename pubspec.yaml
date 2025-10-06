@@ -48,6 +48,7 @@ dependencies:
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
   http: ^1.2.2
+  flutter_svg: ^2.0.10+1
 
 dev_dependencies:
   flutter_test:
@@ -69,9 +70,18 @@ flutter:
   assets:
     - assets/logo.png
     - assets/logo_splash.png
-    - assets/b1.png
-    - assets/b2.png
-    - assets/b3.png
+    - assets/descuento.png
+    - assets/ahorra.png
+    - assets/descubre.png
+    - assets/cocinamos.png
+    - assets/pide.png
+    - assets/escoge.png
+    - assets/ensalada_frejol.png
+    - assets/ensalada_pollo.png
+    - assets/ensalada_atun.png
+    - assets/pescado_verduras.png
+    - assets/sopa_pollo.png
+    - assets/icon/
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
@@ -93,7 +103,22 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
-  # fonts:
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/poppins/Poppins-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/poppins/Poppins-Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/poppins/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/poppins/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/poppins/Poppins-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/poppins/Poppins-ExtraBold.ttf
+          weight: 800
   #   - family: Schyler
   #     fonts:
   #       - asset: fonts/Schyler-Regular.ttf
